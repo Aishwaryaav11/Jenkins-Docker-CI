@@ -1,41 +1,74 @@
+
 pipeline {
     agent any
 
     environment {
         REGISTRY = "localhost:5000"
         IMAGE_NAME = "abh-app"
+        DOCKER = "C:\\Users\\STUDENT\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe"
+        PYTHON = "C:\\Users\\STUDENT\\AppData\\Local\\Programs\\Python\\Python313\\python.exe"
     }
 
     stages {
+
         stage('1. Checkout Code') {
             steps {
                 checkout scm
+                echo 'GitHub source code downloaded successfully!'
             }
         }
 
         stage('2. Application Build & Test') {
             steps {
-             bat '"C:\\Users\\STUDENT\\AppData\\Local\\Programs\\Python\\Python313\\python.exe" app.py'
+                echo 'Running Python application...'
+
+                bat '"%PYTHON%" app.py'
+
+                echo 'Application executed successfully!'
             }
         }
 
-        stage('3. Build & Tag Docker Image') {
+        stage('3. Check Docker') {
             steps {
-                bat "docker build -t ${REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER} -t ${REGISTRY}/${IMAGE_NAME}:latest ."
+                echo 'Checking Docker installation...'
+
+                bat '"%DOCKER%" --version'
+
+                bat '"%DOCKER%" info'
             }
         }
 
-        stage('4. Push Image to Registry') {
+        stage('4. Build & Tag Docker Image') {
             steps {
-                bat "docker push ${REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER}"
-                bat "docker push ${REGISTRY}/${IMAGE_NAME}:latest"
+                echo 'Building Docker image...'
+
+                bat '"%DOCKER%" build -t localhost:5000/abh-app:%BUILD_NUMBER% -t localhost:5000/abh-app:latest .'
+            }
+        }
+
+        stage('5. Push Image to Registry') {
+            steps {
+                echo 'Pushing Docker image to local registry...'
+
+                bat '"%DOCKER%" push localhost:5000/abh-app:%BUILD_NUMBER%'
+
+                bat '"%DOCKER%" push localhost:5000/abh-app:latest'
             }
         }
     }
 
     post {
         success {
-            echo "Pipeline succeeded! Image ${REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER} is available locally and in the registry."
+            echo 'SUCCESS! Jenkins pipeline completed successfully.'
+            echo 'Docker image pushed to localhost:5000/abh-app'
+        }
+
+        failure {
+            echo 'BUILD FAILED! Please check the Console Output.'
+        }
+
+        always {
+            echo 'Jenkins pipeline execution finished.'
         }
     }
 }
